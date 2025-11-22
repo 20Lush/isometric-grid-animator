@@ -1,4 +1,5 @@
 from manim import *
+from theme import Theme
 import numpy as np
 
 # --- CONFIGURATION ---
@@ -6,24 +7,17 @@ GRID_SIZE = 40      # Increased to cover the screen
 PEG_SPACING = 0.6   # Distance between squares (Manim unit)
 
 # --- WAVE SETTINGS ---
-WAVE_AMPLITUDE = 0.5 # Height of the wave (vertical displacement)
+WAVE_AMPLITUDE = 0.2 # Height of the wave (vertical displacement)
 WAVE_FREQUENCY = 0.5 # Spatial frequency (higher = tighter waves, lower = wider waves)
 
 # --- ANIMATION LOOP CONTROL ---
 LOOP_DURATION = 8.0 # Duration of the video in seconds (One perfect loop)
-WAVE_SPEED = (2 * np.pi) / LOOP_DURATION # Auto-calculated speed for perfect loop
+WAVE_SPEED = -1 * (2 * np.pi) / LOOP_DURATION # Auto-calculated speed for perfect loop
 
 # Set resolution
 config.pixel_width = 512
 config.pixel_height = 256
 config.frame_height = 8.0
-
-# --- COLORS (Altitude Palette) ---
-COLOR_BACKGROUND = "#FFFFFF"
-COLOR_BASE = "#D3D3D3"    # Light Grey
-COLOR_LOW = "#0000FF"     # Blue
-COLOR_MID = "#FFFF00"     # Yellow
-COLOR_HIGH = "#FF0000"    # Red
 
 class IsometricCyberGrid(ThreeDScene):
     """
@@ -34,7 +28,7 @@ class IsometricCyberGrid(ThreeDScene):
         # 1. SCENE SETUP
         
         # Set the dark cyberpunk background
-        self.camera.background_color = COLOR_BACKGROUND
+        self.camera.background_color = Theme.COLOR_BACKGROUND
         
         # Set the camera for an isometric view (floor view)
         # phi=60 degrees from Z-axis (30 degrees elevation)
@@ -102,34 +96,29 @@ class IsometricCyberGrid(ThreeDScene):
                 val = (height_factor + 1) / 2
                 
                 # Multi-stage gradient: Grey -> Blue -> Yellow -> Red
+                # Wrap hex strings in ManimColor for interpolation
                 if val < 0.33:
                     # Grey to Blue
                     alpha = val / 0.33
-                    c1 = ManimColor(COLOR_BASE)
-                    c2 = ManimColor(COLOR_LOW)
-                    face_color = interpolate_color(c1, c2, alpha)
+                    face_color = interpolate_color(ManimColor(Theme.COLOR_BASE), ManimColor(Theme.COLOR_LOW), alpha)
                 elif val < 0.66:
                     # Blue to Yellow
                     alpha = (val - 0.33) / 0.33
-                    c1 = ManimColor(COLOR_LOW)
-                    c2 = ManimColor(COLOR_MID)
-                    face_color = interpolate_color(c1, c2, alpha)
+                    face_color = interpolate_color(ManimColor(Theme.COLOR_LOW), ManimColor(Theme.COLOR_MID), alpha)
                 else:
                     # Yellow to Red
                     alpha = (val - 0.66) / 0.34
-                    c1 = ManimColor(COLOR_MID)
-                    c2 = ManimColor(COLOR_HIGH)
-                    face_color = interpolate_color(c1, c2, alpha)
+                    face_color = interpolate_color(ManimColor(Theme.COLOR_MID), ManimColor(Theme.COLOR_HIGH), alpha)
                 
-                # Darken the sides slightly for 3D effect
-                side_color = interpolate_color(face_color, ManimColor(BLACK), 0.2)
+                # Darken the sides more significantly for 3D effect
+                side_color = interpolate_color(face_color, BLACK, 0.4)
                 
-                # Color the top face (Face 4) with the main color
-                peg[4].set_color(face_color)
+                # Apply colors using set_fill to preserve black strokes
+                # First set the entire peg (all faces) to the side/shaded color
+                peg.set_fill(side_color, opacity=1.0)
                 
-                # Color the sides with the shaded color
-                for k in [0, 1, 2, 3]:
-                    peg[k].set_color(side_color)
+                # Then override the top face (Face 4) with the bright face color
+                peg[4].set_fill(face_color, opacity=1.0)
 
         # Apply the updater to the entire group
         grid_group.add_updater(wave_updater)
